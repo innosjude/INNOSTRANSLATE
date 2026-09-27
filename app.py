@@ -179,6 +179,7 @@ def translate():
     uploaded = request.files.get("file")
     source = (request.form.get("from") or "auto").lower()
     target = (request.form.get("to") or "en").lower()
+    mode = (request.form.get("mode") or "translate").lower()
     subtitles = (request.form.get("subtitles") or "true").lower() == "true"
     dubbing = (request.form.get("dubbing") or "false").lower() == "true"
 
@@ -188,7 +189,9 @@ def translate():
         return jsonify({"error": "Choose a valid target language."}), 400
     if source != "auto" and source not in LANG_NAMES:
         return jsonify({"error": "Choose a valid source language."}), 400
-    if source != "auto" and source == target:
+    if mode not in ("translate", "lyrics"):
+        return jsonify({"error": "Invalid mode."}), 400
+    if mode == "translate" and source != "auto" and source == target:
         return jsonify({"error": "Source and target languages must be different."}), 400
 
     if dubbing:
@@ -251,6 +254,30 @@ def translate():
 
         detected = detect_language(transcript, source)
 
+        if mode == "lyrics":
+            # Keep the original transcription instead of translating it.
+            lyrics_chunks = [
+                {
+                    "start": x["start"],
+                    "end": x["end"],
+                    "source": x["text"],
+                    "text": x["text"],
+                }
+                for x in chunks
+            ]
+            lyrics_full = "\n".join(x["text"] for x in lyrics_chunks if x["text"])
+            srt = make_srt(lyrics_chunks) if subtitles else ""
+            return jsonify({
+                "ok": True,
+                "mode": "lyrics",
+                "detected": LANG_NAMES.get(detected, detected),
+                "detected_code": detected,
+                "target": LANG_NAMES.get(detected, detected),
+                "translation": lyrics_full,
+                "srt": srt,
+                "chunks": lyrics_chunks,
+            })
+
         try:
             translated_chunks = translate_chunks(chunks, detected, target)
         except Exception as exc:
@@ -263,6 +290,7 @@ def translate():
 
         return jsonify({
             "ok": True,
+            "mode": "translate",
             "detected": LANG_NAMES.get(detected, detected),
             "detected_code": detected,
             "target": LANG_NAMES.get(target, target),

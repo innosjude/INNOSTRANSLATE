@@ -51,9 +51,9 @@ footer{text-align:center;color:#68717d;font-size:10px;padding:30px}
 </header>
 
 <section class="hero">
-  <div class="tag">UNIVERSAL MEDIA TRANSLATION</div>
+  <div class="tag">UNIVERSAL MEDIA TRANSLATION + AUDIO TO LYRICS</div>
   <h1>BREAK THE<br><span>LANGUAGE BARRIER</span></h1>
-  <p>Translate anime, movies and videos into your language with subtitles and AI dubbing.</p>
+  <p>Translate anime, movies and videos, or turn spoken/sung audio into readable lyrics and timed subtitles.</p>
 </section>
 
 <main class="panel">
@@ -96,10 +96,12 @@ footer{text-align:center;color:#68717d;font-size:10px;padding:30px}
 </section>
 
 <section class="section">
-  <div class="section-title"><span class="num">3</span>Translation Options</div>
+  <div class="section-title"><span class="num">3</span>Choose What You Want</div>
   <div class="options">
-    <label class="option"><input id="subCheck" type="checkbox" checked> 📄 Add Subtitles</label>
-    <label class="option"><input id="dubCheck" type="checkbox"> 🔊 AI Voice (Dubbing)<small style="display:block;color:#777;margin-top:6px">Subtitle translation is active. Voice dubbing will be added in a later module.</small></label>
+    <label class="option"><input id="lyricsMode" type="radio" name="mode" value="lyrics"> 🎵 Audio → Lyrics<small style="display:block;color:#777;margin-top:6px">Transcribe speech or singing into text in the original language.</small></label>
+    <label class="option"><input id="translateMode" type="radio" name="mode" value="translate" checked> 🌐 Translate Audio/Video<small style="display:block;color:#777;margin-top:6px">Transcribe and translate into your selected language.</small></label>
+    <label class="option"><input id="subCheck" type="checkbox" checked> 📄 Create timed SRT subtitles</label>
+    <label class="option"><input id="dubCheck" type="checkbox"> 🔊 AI Voice (Dubbing)<small style="display:block;color:#777;margin-top:6px">Not enabled yet.</small></label>
   </div>
 </section>
 
@@ -162,8 +164,10 @@ async function translateUniversal(){
     setProgress(10,"Preparing your video...");
     const form=new FormData();
     form.append("file",file);
+    const mode=document.querySelector('input[name="mode"]:checked').value;
     form.append("from",from);
     form.append("to",to);
+    form.append("mode",mode);
     form.append("subtitles",document.getElementById("subCheck").checked);
     form.append("dubbing",document.getElementById("dubCheck").checked);
 
@@ -179,10 +183,10 @@ async function translateUniversal(){
     srtContent=data.srt||"";
 
     document.getElementById("detected").textContent=detectedLang;
-    document.getElementById("targetLanguage").textContent=to;
+    document.getElementById("targetLanguage").textContent=data.mode==="lyrics" ? "Original audio" : to;
     document.getElementById("transcript").textContent=fullTranslated;
     document.getElementById("result").style.display="block";
-    setProgress(100,"Translation complete!");
+    setProgress(100,data.mode==="lyrics" ? "Lyrics ready!" : "Translation complete!");
   }catch(e){
     setProgress(0,"Translation failed.");
     alert("INNOSTRANSLATE Error:\n\n"+e.message);
